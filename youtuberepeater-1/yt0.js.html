@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head><title>yt0.js</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+</head>
+<body>
+<script>//make the attribute parser
+//new version with updated attrlex (One pass!!!!!)
+
+var attrlex = function(str){//全部オートマトンで書いた。やったー！！
+    var i = 0;
+    var state = 0;//0 first 1 second
+    var ttype = 0;//0 unknown 1 space 2 string 3 name
+    var tokenended = false;
+    var attrs = [];
+    var attr = ["",""];
+    while(i < str.length){
+        //console.log(i,str[i],state,ttype);
+        if(ttype === 0){
+            if(tokenended){
+                if(state === 1){//end section
+                    attrs.push(attr);
+                    state = 0;
+                    attr = ["",""];
+                    tokenended = false;
+                }
+            }
+            if(str[i] === " "){
+                ttype = 1;
+                //i++;
+            }else if(str[i] === "\""){
+                ttype = 2;
+                i++;
+            }else if(str[i] === "="){
+                ttype = 0;
+                state = 1;
+                i++;
+                tokenended = false;
+            }else{//name
+                ttype = 3;
+            }
+        }else if(ttype === 1){//space
+            if(str[i] === " "){
+                i++;
+            }else{
+                ttype = 0;
+            }
+        }else if(ttype === 2){//string
+            if(tokenended){//did not pass "=", end section
+                attrs.push(attr);
+                state = 0;
+                attr = ["",""];
+                tokenended = false;
+            }
+            if(str[i] === "\\"){
+                attr[state]+=str[i+1];
+                i+=2;
+            }else if(str[i] === "\""){
+                ttype = 0;
+                i++;
+                tokenended = true;
+            }else{
+                attr[state]+=str[i];
+                i++;
+            }
+        }else if(ttype === 3){//name
+            if(tokenended){//did not pass "=", end section
+                attrs.push(attr);
+                state = 0;
+                attr = ["",""];
+                tokenended = false;
+            }
+            if(str[i] === "="){
+                ttype = 0;
+                tokenended = true;
+            }else if(str[i] === " "){
+                ttype = 0;
+                tokenended = true;
+            }else if(str[i] === "\""){
+                ttype = 0;
+                tokenended = true;
+            }else{
+                attr[state]+=str[i];
+                i++;
+            }
+        }
+    }
+    if(attr[0] !== "")attrs.push(attr);
+    return attrs;
+};
+
+
+var ELEM = function(nname,inner,attr,style){
+    var e = document.createElement(nname);
+    if(inner)e.innerHTML = inner;
+    if(attr){
+        attrlex(attr).map(at=>{
+            e.setAttribute(at[0],at[1]);
+        });
+    }
+    if(style)e.style = style;
+    this.e = e;
+
+    this.add = function(nname,inner,attr,style){
+        if(typeof nname === "string"){
+            var eelem = new ELEM(nname,inner,attr,style);
+            this.e.appendChild(eelem.e);
+            return eelem;
+        }else{
+            this.e.appendChild(nname.e);
+            return nname;
+        }
+    };
+    this.attr = function(a,b){
+        this.e.setAttribute(a,b);
+    };
+};
+
+var body = (new function(){
+    this.e = document.body;
+    this.add = function(nname,inner,attr,style){
+        if(typeof nname === "string"){
+            var eelem = new ELEM(nname,inner,attr,style);
+            this.e.appendChild(eelem.e);
+            return eelem;
+        }else{
+            this.e.appendChild(nname.e);
+            return nname;
+        }
+    };
+}());
+</script>
+<script>
+// namespace usage: YTstate, onYouTubeIframeAPIReady, YT, Player
+
+var YTstate = {
+    ready:false,
+    funcs:[],
+    whenready:function(func){
+        if(this.ready){
+            func();
+        }else{
+            this.funcs.push(func);
+        }
+    }
+};
+
+var onYouTubeIframeAPIReady = function(){
+    YTstate.ready = true;
+    YTstate.funcs.map(func=>func());
+};
+
+
+(function(){
+    // 2. This code loads the IFrame Player API code asynchronously.
+    var tag = document.createElement('script');
+
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    body.add("style",`
+    .yt-wrapper{
+        position: relative;
+        width: 100%;
+        height: 0;
+        padding-bottom: 56.25%;
+    }
+    .yt-wrapper>iframe{
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+    `);
+})();
+
+const Player = function(){
+    var id = Math.random().toString(36).slice(2);
+    var wrapper = new ELEM("div",null,'class="yt-wrapper"');
+    var iframe = wrapper.add("iframe",null,'id="'+id+'" frameborder="0" allowfullscreen="1" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" width="640" height="385"',"background-color:#000;color:#fff;font-size:3em;");
+    var ready = false;
+    var raw_player;
+    this.raw_player = raw_player;
+    var that = this;
+
+
+    var setTimePending = false;
+    this.setTime = function(time){
+        if(ready){
+            raw_player.seekTo(time);
+        }else{
+            setTimePending = time;
+        }
+    };
+
+    this.getTime = function(){
+        if(ready){
+            return raw_player.getCurrentTime();
+        }else if(setTimePending !== false){
+            return setTimePending;
+        }else{
+            return 0;
+        }
+    };
+
+    this.playing = true;
+    this.pause = function(){
+        that.playing = false;
+        if(ready){
+            raw_player.pauseVideo();
+        }
+    };
+
+    this.play = function(){
+        that.playing = true;
+        if(ready){
+            raw_player.playVideo();
+        }
+    }
+
+    this.e = wrapper.e;
+
+    var onPlayerReady = function(){
+        ready = true;
+        console.log("player ready");
+        console.log(raw_player);
+        if(setTimePending !== false){
+            that.setTime(setTimePending);
+            setTimePending = false;
+        }
+        if(that.playing === true){
+            that.play();
+        }else{
+            that.pause();
+        }
+    };
+
+    var onStateChange = function(e){
+        console.log(e);
+        if(e.data === 1){
+            that.playing = true;
+        }else{
+            that.playing = false;
+        }
+    };
+
+    this.setURL = function(url){
+        ready = false;
+        YTstate.whenready(()=>{
+            iframe.attr("src",url);
+            raw_player = new YT.Player(id, {
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onStateChange
+                }
+            });
+            this.raw_player = raw_player;
+        });
+    }
+};</script>
+<script>//require /lib/htmlgen0.js
+//require ./player.js
+
+
+var parseTime = function(time){
+    var ts = time.split(":").map(a=>{return parseFloat(a)}).reverse();
+    var v = 1;
+    var t = 0;
+    for(var i = 0; i < ts.length; i++){
+        t += ts[i]*v;
+        v *= 60;
+    }
+    return t;
+};
+var encodeTime = function(num){
+    var h = Math.floor(num/3600);
+    var m = Math.floor((num-h*3600)/60);
+    var s = num-h*3600-m*60;
+    if(h === 0){
+        if(m === 0){
+            return s;
+        }else{
+            return m+":"+s;
+        }
+    }else{
+        return h+":"+m+":"+s;
+    }
+};
+var urlToVid = function(url){
+    url = new URL(url);
+    return url.searchParams.get("v") || url.pathname.split("/").pop();
+};
+var queries = new URL(window.location.href).searchParams;
+var targetURL = "https://www.youtube.com/watch?v="+(queries.get("v") || "xkMdLcB_vNU");
+var sts = parseFloat(queries.get("sts")) || 3.5;
+var eds = parseFloat(queries.get("eds")) || 89.5;
+
+var modifyQuery = function(key,val){
+    var queryParams = new URLSearchParams(window.location.search);
+    queryParams.set(key,val);
+    history.replaceState(null, null, "?"+queryParams.toString());
+}
+
+
+//html part
+
+var wrapper = body.add("div");
+
+wrapper.add("h1","YouTube Repeater (with precise fractions!!!)");
+
+var r1 = wrapper.add("div",null,null,"overflow:hidden");
+
+var d1 = r1.add("div",null,null,"float:left;");
+d1.add("span","url:");
+var urlDom = r1.add("input",null,'type="text"',null);
+urlDom.e.value = targetURL;
+
+
+var d2 = r1.add("div",null,null,"float:left;");
+var button = r1.add("input",null,'type="button"value="play"',null);
+button.e.addEventListener("click",a=>{
+    console.log("button pressed");
+    modifyQuery("v",urlToVid(urlDom.e.value));
+    modifyQuery("sts",sts);
+    modifyQuery("eds",eds);
+    play(urlDom.e.value);
+});
+
+var r2 = wrapper.add("div",null,null,"overflow:hidden");
+
+var d3 = r2.add("div",null,null,"float:left;");
+d3.add("span","start:");
+var startDom = d3.add("input",null,'type="text"',null);
+startDom.e.addEventListener("input",a=>{
+    sts = parseTime(startDom.e.value);
+    modifyQuery("sts",sts);
+});
+
+var d4 = r2.add("div",null,null,"float:left;");
+d4.add("span","end:");
+var endDom = d4.add("input",null,'type="text"',null);
+endDom.e.addEventListener("input",a=>{
+    eds = parseTime(endDom.e.value);
+    modifyQuery("eds",eds);
+});
+
+
+
+
+
+startDom.e.value = encodeTime(sts);
+endDom.e.value = encodeTime(eds);
+
+
+
+/*body.add("style",`
+.full-screen iframe{
+    transform-origin:0 0;
+    transform:scale("+screen.width/640+");
+}
+`);*/
+body.add("style",`
+.db-player{
+    max-width:900px;
+}
+.full-screen.db-player{
+    max-width:100%;
+}
+.full-screen .yt-wrapper{
+    padding-bottom: `+screen.height/screen.width*100+`%;
+}
+.full-screen yt-wrapper{
+    width:100%;
+}
+`);
+const DBPlayer = function(){
+    const player1 = new Player();
+    const player2 = new Player();
+    const players = [player1,player2];
+    this.players = players;
+    const root = new ELEM("div",false,'class="db-player"');
+    const that = this;
+    root.add(player1);
+    root.add(player2);
+    this.e = root.e;
+    this.main = player1;
+    this.sub = player2;
+    this.sub.e.style.display = "none";
+    this.play = function(){
+        that.main.play();
+    }
+    this.pause = function(){
+        that.main.pause();
+    }
+    this.toggle = function(){
+        const temp = that.main;
+        that.main = that.sub;
+        that.sub = temp;
+        if(that.sub.playing){
+            that.main.play();
+        }else{
+            that.main.pause();
+        }
+        that.sub.pause();
+        this.main.e.style.display = "block";
+        this.sub.e.style.display = "none";
+    }
+    this.setURL = (url)=>{
+        players.map((player)=>{
+            player.setURL(url);
+        });
+    }
+}
+
+const player = new DBPlayer();
+wrapper.add(player);
+wrapper.add("input",false,'type="button"value="full screen"').e.addEventListener("click",function(){
+	player.e.requestFullscreen();
+	player.e.classList.add("full-screen");
+});
+player.e.addEventListener('fullscreenchange', (e) => {
+	if (!document.fullscreenElement) {
+		console.log('Leaving full-screen');
+		player.e.classList.remove("full-screen");
+	}
+});
+
+
+const demon = function(e){
+    var t = player.main.getTime();
+    if(t >= eds){
+        player.toggle();
+        player.sub.setTime(sts);
+    }
+    //requestAnimationFrame(demon);
+};
+setInterval(demon,10);
+
+var play = function(url){
+    var vid = urlToVid(url)
+    url = "https://www.youtube.com/embed/"+vid+"?autoplay=1&amp;loop=1&amp;rel=0&amp;fs=1&amp;modestbranding=1&amp;iv_load_policy=3&amp;enablejsapi=1&amp;origin="+escape(window.location.origin)+"&amp;widgetid=1";
+    player.setURL(url);
+    player.main.setTime(sts);
+    player.sub.setTime(sts);
+    player.sub.pause();
+};
+
+
+(function(){
+    var queries = new URL(window.location.href).searchParams;
+    queries.get("v");
+    queries.get("sts");
+    queries.get("eds");
+})()
+</script>
+
+</body>

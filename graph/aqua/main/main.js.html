@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head><title>main.js</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+</head>
+<body>
+<script>var displayTree = function(ast){
+    var canvas = document.createElement("canvas");
+    canvas.width = 1000;
+    canvas.height = 1000;
+    var ctx = canvas.getContext("2d");
+    document.body.innerHTML = "";
+    document.body.appendChild(canvas);
+    var lp = 1;
+    var iterator = function(ast,depth){
+        var slen = 0;
+        if(Array.isArray(ast[1])){
+            ctx.strokeText(ast[0],lpnow*20,depth*30);
+            var lpnow = lp;
+            for(var i = 0; i < ast[1].length; i++){
+                var sslen = iterator(ast[1][i],depth+1);
+                ctx.moveTo(lpnow*20,depth*30);
+                ctx.lineTo((lpnow+slen)*20,(depth+1)*30);
+                ctx.stroke();
+                slen += sslen;
+            }
+            return slen;
+        }else{
+            ctx.strokeText(ast[1],lp*20-5,depth*30+10);
+            lp += ast[1].length;
+            return ast[1].length;
+        }
+    };
+    iterator(ast,0.3);
+};
+
+</script>
+<script>//require displaytree.js
+
+var Stack = function(){
+    var stack = null;
+    this.peek = function(){
+        if(stack === null){
+            return null;
+        }
+        return stack[0];
+    };
+    this.push = function(item){
+        stack = [item,stack];
+    };
+    this.pop = function(){
+        if(stack === null){
+            return null;
+        }
+        var retval = stack[0];
+        stack = stack[1];
+        return retval;
+    };
+    this.display = function(){
+        var a = [];
+        var ts = stack;
+        while(ts !== null){
+            a.push(ts[0]);
+            ts = ts[1]
+        }
+        return a;
+    }
+};
+
+var encodeTwoTokens = function(a,b){
+    var aa = "";
+    var bb = "";
+    for(var i = 0; i < a.length; i++){
+        if(a[i] === "|"){
+            aa += "||";
+        }else if(a[i] === ","){
+            aa += "|,";
+        }else{
+            aa += a[i];
+        }
+    }
+    for(var i = 0; i < b.length; i++){
+        if(b[i] === "|"){
+            bb += "||";
+        }else if(b[i] === ","){
+            bb += "|,";
+        }else{
+            bb += b[i];
+        }
+    }
+    return aa + "," + bb;
+};
+
+var decodeTwoTokens = function(str){
+    var a;
+    var b;
+    var ab = "";
+    for(var i = 0; i < str.length; i++){
+        if(str[i] === "|"){
+            ab += str[i+1];
+            i++;
+        }else if(str[i] === ","){
+            a = ab;
+            ab = "";
+        }else{
+            ab += str[i];
+        }
+    }
+    b = ab;
+    return [a,b];
+};
+
+var GenParser = function(precedence){
+    var stackPs = [
+        {},//class 0 !
+        {},//class 1 ++
+        {},//class 2 *
+        {},//class 3 ()
+        //{},//class 4 \n
+    ];
+    var feedPs = {};
+    var procLen = precedence.length;
+    var lowProc0 = 3*0;//used by $
+    var lowProc1 = 3*1;//used by (,) class 3
+    var lowProc2 = 3*2;//used by ? ++ class 0 and 3
+    var highProc = 3*(3+procLen);//used by class 1
+
+    feedPs["$"] = lowProc0;
+
+    //putting values to the reference table
+    for(var i = 0; i < precedence.length; i++){//from lower to higher
+        var basePrec = 3*(3+(precedence.length-i-1));
+        var rs = [precedence[i]]
+        if(Array.isArray(precedence[i][0])){//if group
+            rs = precedence[i];
+        }
+        for(var j = 0; j < rs.length; j++){//for each entry
+            var r = rs[j];
+            var rclass = r[0];
+            var rassociativity = r[1];
+            var rstr1 = r[2];
+            var rstr2 = r[3];
+            if(rclass === 0){
+                stackPs[0][rstr1] = basePrec;
+                feedPs[rstr1] = basePrec - 1;
+            }else if(rclass === 1){
+                stackPs[1][rstr1] = highProc;
+                feedPs[rstr1] = basePrec - 1;
+            }else if(rclass === 2){
+                stackPs[2][rstr1] = basePrec;
+                feedPs[rstr1] = basePrec + (rassociativity===0?-1:1);
+            }else if(rclass === 3){
+                stackPs[0][rstr1] = lowProc1;
+                feedPs[rstr1] = highProc;
+                stackPs[1][rstr2] = lowProc1;
+                feedPs[rstr2] = lowProc2;
+                stackPs[3][encodeTwoTokens(rstr1,rstr2)] = highProc;
+            }
+        }
+    }
+
+    //console.log(stackPs);
+    //console.log(feedPs);
+
+
+    var cleanupAST = function(ast){
+        return cleanupASTK(ast,true);
+    };
+
+    var cleanupASTK = function(ast,f){
+        if(f){
+            if(Array.isArray(ast[1])){//nested
+                return cleanupASTK(ast[1],false);
+            }else{//true id
+                return ast;
+            }
+        }else{//inside group
+            for(var i = 1; i < ast.length; i++){
+                ast[i] = cleanupASTK(ast[i],true);
+            }
+            return ast;
+        }
+    };
+
+
+
+    this.parse = function(tokens){
+        tokens.push(["$","$"]);
+        var stack = new Stack();
+        stack.push(["$","$"]);
+        stack.push(["$","$"]);
+        stack.push(tokens[0]);
+
+        var i = 1;
+        var cnt = 0;
+        while(i < tokens.length+1){
+            cnt++;
+            if(cnt > 1000){
+                console.log("timeout, unaccepted");
+                break;
+            }
+
+
+            var lookahead = tokens[i];
+            var t3 = stack.pop();
+            var t2 = stack.pop();
+            var t1 = stack.pop();
+
+            //end condition
+            if(t1[0] === "$" && t3[0] === "$"){
+                stack.push(t1);
+                stack.push(t2);
+                stack.push(t3);
+                return cleanupAST(t2);
+                //if does not accept returns undefined
+            }
+
+            //reduce
+            if(t1[0]==="id"&&t2[0]==="op"&&t3[0]==="id"&&stackPs[2][t2[1]]){//class 2
+                //class 2
+                var p1 = stackPs[2][t2[1]];
+                var p2 = feedPs[lookahead[1]];
+                if(p1>p2){//reduce
+                    stack.push(["id",[t2[1],t1,t3]]);
+                    continue;
+                }
+            }
+            if(t1[0]==="op"&&t2[0]==="id"&&t3[0]==="op"&&stackPs[3][encodeTwoTokens(t1[1],t3[1])]){//class 3
+                //class 3
+                var p1 = stackPs[3][encodeTwoTokens(t1[1],t3[1])];
+                var p2 = feedPs[lookahead[1]];
+                if(p1>p2){//reduce
+                    stack.push(["id",[t1[1],t2]]);
+                    continue;
+                }
+            }
+            if(t2[0]==="op"&&t3[0]==="id"&&stackPs[0][t2[1]]){//class 0
+                //class 0
+                var p1 = stackPs[0][t2[1]];
+                var p2 = feedPs[lookahead[1]];
+                if(p1>p2){//reduce
+                    stack.push(t1);
+                    stack.push(["id",[t2[1],t3]]);
+                    continue;
+                }
+            }
+            if(t2[0]==="id"&&t3[0]==="op"&&stackPs[1][t3[1]]){//class 1
+                //class 1
+                var p1 = stackPs[1][t3[1]];
+                var p2 = feedPs[lookahead[1]];
+                if(p1>p2){//reduce
+                    stack.push(t1);
+                    stack.push(["id",[t3[1],t2]]);
+                    continue;
+                }
+            }
+            //shift
+            stack.push(t1);
+            stack.push(t2);
+            stack.push(t3);
+            stack.push(lookahead);
+            i++;
+        }
+    };
+
+
+    this.parseOrdered = function(tokens){
+        tokens.push(["$","$"]);
+        var stack = new Stack();
+        stack.push(["$","$"]);
+        stack.push(["$","$"]);
+        stack.push(tokens[0]);
+
+        var i = 1;
+        var cnt = 0;
+        while(i < tokens.length+1){
+            cnt++;
+            if(cnt > 100){
+                console.log("timeout, unaccepted");
+                break;
+            }
+
+
+            var lookahead = tokens[i];
+            var t3 = stack.pop();
+            var t2 = stack.pop();
+            var t1 = stack.pop();
+
+            //end condition
+            if(t1[0] === "$" && t3[0] === "$"){
+                stack.push(t1);
+                stack.push(t2);
+                stack.push(t3);
+                return t2;
+                //if does not accept returns undefined
+            }
+
+            //reduce
+            if(t1[0]==="id"&&t2[0]==="op"&&t3[0]==="id"&&stackPs[2][t2[1]]){//class 2
+                //class 2
+                var p1 = stackPs[2][t2[1]];
+                var p2 = feedPs[lookahead[1]];
+                if(p1>p2){//reduce
+                    stack.push(["id",[t1,t2,t3]]);
+                    continue;
+                }
+            }
+            if(t1[0]==="op"&&t2[0]==="id"&&t3[0]==="op"&&stackPs[3][encodeTwoTokens(t1[1],t3[1])]){//class 3
+                //class 3
+                var p1 = stackPs[3][encodeTwoTokens(t1[1],t3[1])];
+                var p2 = feedPs[lookahead[1]];
+                if(p1>p2){//reduce
+                    stack.push(["id",[t1,t2,t3]]);
+                    continue;
+                }
+            }
+            if(t2[0]==="op"&&t3[0]==="id"&&stackPs[0][t2[1]]){//class 0
+                //class 0
+                var p1 = stackPs[0][t2[1]];
+                var p2 = feedPs[lookahead[1]];
+                if(p1>p2){//reduce
+                    stack.push(t1);
+                    stack.push(["id",[t2,t3]]);
+                    continue;
+                }
+            }
+            if(t2[0]==="id"&&t3[0]==="op"&&stackPs[1][t3[1]]){//class 1
+                //class 1
+                var p1 = stackPs[1][t3[1]];
+                var p2 = feedPs[lookahead[1]];
+                if(p1>p2){//reduce
+                    stack.push(t1);
+                    stack.push(["id",[t2,t3]]);
+                    continue;
+                }
+            }
+            //shift
+            stack.push(t1);
+            stack.push(t2);
+            stack.push(t3);
+            stack.push(lookahead);
+            i++;
+        }
+    };
+};
+
+/*
+var parser = new GenParser(
+    [
+        [
+            [1,0,"+"],
+            [1,0,"?"],
+            [1,0,"*"]
+        ],
+        [2,0,"-"],
+        [2,1,"&"],
+        [2,1,"|"],
+        [2,0,"="],
+        [4,0,"\n"],
+        [3,0,"(",")"]
+    ]
+);
+
+var lex = function(str){
+    var a = str.split(" ");
+    var b = [];
+    for(var i = 0; i < a.length; i++){
+        if(["+","?","*","-","&","|","=","\n","(",")"].includes(a[i])){
+            b.push(["op",a[i]]);
+        }else{
+            b.push(["id",a[i]]);
+        }
+    }
+    return b;
+};
+
+
+var result = parser.parse(lex("block = \"{\" & ( dataname & \":\" & data * ) * & \"}\""));
+var result = parser.parseOrdered(lex("block = \"{\" & ( dataname & \":\" & data * ) * & \"}\""));
+//var result = parser.parseOrdered(lex("block = ( dataname )"));
+console.log(result);
+displayTree(result);
+
+*/
+
+
+
+
+
+
+
+</script>
+<script>var isAlphabet = function(str){
+    if(str.match(/[abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ]/g)){
+        return true;
+    }
+    return false;
+};
+var isAlphaNum = function(str){
+    if(str.match(/[abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890]/g)){
+        return true;
+    }
+    return false;
+};
+
+
+
+
+
+var lexEBNF = function(str){
+    var lexInfo = {};
+    lexInfo.str = str;
+    lexInfo.tokens = [];
+    lexInfo.tokenStr = "";
+    lexInfo.i = 0;
+    lexEBNFKernel(lexInfo);
+    return lexInfo.tokens;
+};
+
+var lexEBNFKernel = function(lexInfo){
+    while(lexInfo.str[lexInfo.i]){
+        var chari = lexInfo.str[lexInfo.i];
+        var charii = lexInfo.str[lexInfo.i+1]
+        if(charii&&(chari+charii==="('"|chari+charii==="')")){//two tokens
+            //these tokens are for string conversion parenthesis
+            lexInfo.tokens.push(["op",chari+charii]);
+            lexInfo.i+=2;
+        }else if(chari.match(/[\=\+\*\-\&\|\(\)\[\]\{\}\;\?\n]/g)){
+            lexInfo.tokens.push(["op",chari]);
+            lexInfo.i++;
+        }else if(chari === "\""){
+            lexInfo.i++;
+            lexString(lexInfo);
+        }else if(isAlphabet(chari)){
+            lexName(lexInfo);
+        }else if(chari === "#"){
+            lexComment(lexInfo);
+        }else{
+            lexInfo.i++;
+        }
+    }
+    return true;
+};
+
+var lexString = function(lexInfo){
+    lexInfo.tokenStr = "";
+    while(lexInfo.str[lexInfo.i]){
+        if(lexInfo.str[lexInfo.i] === "\""){
+            lexInfo.i++;
+            break;
+        }else if(lexInfo.str[lexInfo.i] === "\\"){
+            lexInfo.i++;
+        }
+        lexInfo.tokenStr+=lexInfo.str[lexInfo.i];
+        lexInfo.i++;
+    }
+    lexInfo.tokens.push(["id",["str",lexInfo.tokenStr]]);
+    //lexInfo.i++;
+    return true;
+};
+
+
+var lexName = function(lexInfo){
+    lexInfo.tokenStr = "";
+    while(lexInfo.str[lexInfo.i]){
+        if(!isAlphaNum(lexInfo.str[lexInfo.i])){
+            break;
+        }
+        lexInfo.tokenStr+=lexInfo.str[lexInfo.i];
+        lexInfo.i++;
+    }
+    lexInfo.tokens.push(["id",["name",lexInfo.tokenStr]]);
+    return true;
+};
+
+var lexComment = function(lexInfo){
+    lexInfo.tokenStr = "";
+    while(lexInfo.str[lexInfo.i]!=="\n"&&lexInfo.str[lexInfo.i]){
+        lexInfo.i++;
+    }
+    return true;
+};</script>
+<script>//require opp.js
+//require lexebnf.js
+
+var parser = new GenParser(
+    [
+        [
+            [1,0,"+"],
+            [1,0,"?"],
+            [1,0,"*"]
+        ],
+        [2,0,"-"],
+        [2,1,"&"],
+        [2,1,"|"],
+        [2,0,"="],
+        [2,0,"}"],//{,}
+        [4,0,"\n"],
+        [3,0,"(",")"],
+        [3,0,"{",";"],
+        [3,0,"[","]"],
+        [3,0,"('","')"]
+    ]
+);
+
+
+
+var removeParen = function(ast){
+    //console.log(ast);
+    if(!Array.isArray(ast[1])){//nested
+        return ast;
+    }else if(ast[0] === "("){
+        return removeParen(ast[1]);
+    }else{
+        for(var i = 1; i < ast.length; i++){
+            ast[i] = removeParen(ast[i]);
+        }
+        return ast;
+    }
+};
+
+var parseEBNF = function(str){
+    var tokens = lexEBNF(str);
+    //console.log(tokens);
+    var line = [];
+    var lines = [line];
+    for(var i = 0; i < tokens.length; i++){
+        if(tokens[i][0] === "op" && tokens[i][1] === "\n"){
+            line = [];
+            lines.push(line);
+        }else{
+            line.push(tokens[i]);
+        }
+    }
+    console.log(lines);
+    lines = lines.
+    filter((a)=>{return a.length!==0}).//filtering out empty lines
+    map(parser.parse).
+    //console.log(lines);
+    map(removeParen);
+
+    console.log(lines);
+
+    return lines;
+};
+
+</script>
+<script>//require ebnfparser.js
+
+
+
+
+/*
+different kinds of AST nodes
+name
+array
+root
+rule
+empty
+*/
+
+var RecursiveDescentParser = function(grammar){
+    var grammar = parseEBNF(grammar);
+    var rules = {};
+    for(var i = 0; i < grammar.length; i++){
+        var line = grammar[i];
+        if(line[0] !== "="){
+            console.log("grammar contains lines which is not assignment");
+            return false;
+        }
+        rules[line[1][1]] = line[2];
+    }
+    var root = rules[grammar[0][1][1]];
+
+    console.log(root);
+
+    var strAt = function(strf,i,str){
+        for(var j = 0; j < str.length;j++){
+            if(str[j] !== strf[i+j]){
+                return false;
+            }
+        }
+        return true;
+    };
+
+    var astToString = function(ast){
+        if(Array.isArray(ast)){
+            var str = "";
+            for(var i = 0; i < ast.length; i++){
+                str+=astToString(ast[i]);
+            }
+            return str;
+        }else if(typeof ast === "string"){
+            return ast;
+        }else{
+            return "";
+        }
+    };
+
+    var cleanupAST = function(ast){//ast must be a "rule" node
+        var root = ast[1];
+        var itrRule = function(sast){//just for finding the root
+            //console.log(sast);
+            if(sast[0] === "root"){
+                root = sast[1];
+                return true;
+            }else if(sast[0] === "rule"){
+                return false;
+            }else if(sast[0] === "array"){
+                for(var i = 0; i < sast[1].length; i++){
+                    itrRule(sast[1][i]);
+                }
+            }else if(sast[0] === "name"){
+                console.log("nested naming outside root not permitted");
+                return false;
+            }else if(sast[0] === "stringConversion"){
+                itrRule(sast[1]);
+            }else{
+                return false;//dead branch
+            }
+        };
+        itrRule(ast[1]);
+        //console.log(root);
+        var itrRoot = function(sast){//iterating inside the root to invoke other rules
+            if(sast[0] === "root"){
+                console.log("nested root not permitted in a rule");
+                return false;
+            }else if(sast[0] === "rule"){
+                return cleanupAST(sast);//invoke cleanup in the branch
+            }else if(sast[0] === "array"){//go down
+                for(var i = 0; i < sast[1].length; i++){
+                    sast[1][i] = itrRoot(sast[1][i]);
+                }
+                return sast[1];
+            }else if(sast[0] === "name"){//go down
+                return [sast[1],itrRoot(sast[2])];
+            }else if(sast[0] === "stringConversion"){
+                var result = itrRoot(sast[1]);
+                //convert result into string and return
+                return astToString(result);
+            }else if(sast[0] === "empty"){//terminal
+                return sast;
+            }else if(typeof sast === "string"){//terminal
+                return sast;
+            }
+        };
+        return itrRoot(root);
+    };
+
+    this.parse = function(str){
+        var i = 0;
+        var exrule = function(str,rule){
+            //console.log(str,rule);
+            if(rule[0] === "name"){
+                //jump to another rule
+                var result = exrule(str,rules[rule[1]]);
+                if(result)return ["rule",result];
+                return false;
+            }else if(rule[0] === "str"){
+                //string terminal
+                var match = rule[1];
+                if(strAt(str,i,rule[1])){//if the string at i is in rule
+                    i+= rule[1].length;
+                    return rule[1];
+                }
+                return false;
+            }else{
+                //jump to another subrule
+                return procs[rule[0]](str,rule);
+            }
+        };
+        var procs = {
+            "+":function(str,rule){//[+, r1]//returns array
+                var result = exrule(str,rule[1]);
+                if(!result){//fail
+                    return false;
+                }
+                var ret = [];
+                while(result){
+                    ret.push(result);
+                    result = exrule(str,rule[1]);
+                }
+                return ["array",ret];
+            },
+            "?":function(str,rule){//returns ast
+                var result = exrule(str,rule[1]);
+                if(!result){//fail
+                    return ["empty"];
+                }
+                return result;
+            },
+            "*":function(str,rule){//returns array
+                var result = exrule(str,rule[1]);
+                var ret = [];
+                while(result){
+                    ret.push(result);
+                    result = exrule(str,rule[1]);
+                }
+                return ["array",ret];
+            },
+            "-":function(str,rule){
+
+            },
+            "&":function(str,rule){//returns array
+                //(right (associative))
+                var i0 = i;
+                var result1 = exrule(str,rule[1]);
+                if(!result1){
+                    i = i0;
+                    return false;
+                }
+                var result2 = exrule(str,rule[2]);
+                if(!result2){
+                    i = i0;
+                    return false;
+                }
+
+                if(rule[2][0] === "&"){//returns array
+                    //if immediately next to is the same
+                    //result2 is "array"
+                    result2[1].unshift(result1)
+                    return result2;
+                }
+                return ["array",[result1,result2]];
+            },
+            "|":function(str,rule){//returns ast
+                var result1 = exrule(str,rule[1]);
+                if(result1){
+                    return result1;
+                }
+                var result2 = exrule(str,rule[2]);
+                if(result2){
+                    return result2;
+                }
+                return false;
+            },
+            "{":function(str,rule){//returns ast
+                if(rule[1][0] === "}"){//if naming node
+                    //["{",[",",rule,["name",name]]]
+                    var result = exrule(str,rule[1][1]);
+                    var name = rule[1][2][1];
+                    if(!result){
+                        return false;
+                    }
+                    return ["name",name,result];
+                }else{
+                    console.log("error");
+                    console.log("in name declaration, } inside {; was expected");
+                    return false;
+                }
+            },
+            "[":function(str,rule){//returns ast, AKA root
+                var result = exrule(str,rule[1]);
+                if(!result){
+                    return false;
+                }
+                return ["root",result];
+            },
+            "('":function(str,rule){//returns ast, string conversion
+                var result = exrule(str,rule[1]);
+                if(!result){
+                    return false;
+                }
+                return ["stringConversion",result];
+            }
+        };
+        return cleanupAST(["rule",exrule(str,root)]);
+    }
+};
+
+
+/*
+var parser = new RecursiveDescentParser(`
+
+a = "[" & (((n&",")|(n))*) &"]"
+n = "1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"
+`);
+var testParser = new RecursiveDescentParserS(`
+
+a = "[" & {el*,(array)} &"]"
+a = {{"[",(leftbrace)} & {el*,(array)} &{"]",(rightbrace)},(arr)}
+# collects braces and makes an array
+# returns [["leftbrace","["],["array",["1","2","3","4"]],["rightbrace","]"]
+el = ({n}&",")|({n})
+n = {"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"}
+`);
+var result = parser.parse("[3,5,8,2,3,5,2]");
+console.log(result);
+*/
+
+/*
+var parser = new RecursiveDescentParser(`
+# change {,} into {}(); in the near future
+a = "[" & [{el*}(array);] &"]"
+el = ([n]&",")|([n])
+n = "1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"
+`);
+
+var result = parser.parse("[3,5,8,2,3,5,2]");
+console.log(result);
+*/
+
+</script>
+<script>//require recursiveDescentParser.js
+
+var parser = new RecursiveDescentParser(`
+
+page =  S* & [clause*]
+clause = [variablename & S+ & variablename & S* & block] & S*
+
+block = "{" & S* & [dataset*] & S* & "}"
+dataset = [variablename & S* & ":" & S* & datasetContent*] & S*
+datasetContent = accessStyle | colonStyle | connectionStyle
+accessStyle = variablename & S+ & variablename & S* & "[];" & S* #I don't care about this style
+colonStyle = [variablename & S* & ":" & S* & variablename] & S* & ";" & S*
+connectionStyle = variablename & S* & "." & S* & variablename & S* & "++" & S* & "<-->" & S* & "{" & S* & "delay" & S* & "=" & S* & INT & S* & "ms" & S* & ";" & S* & "}" & S* & "<-->" & S* & variablename & S* & "." & S* & "gate" & S* & "++" & S* & ";" & S*
+##connectionStyle = variablename "." variablename "++" "<-->" "{" "delay" "=" INT "ms" ";" "}" "<-->" variablename "." "gate" "++" ";"
+
+
+
+variablename = ('(A|"_")&(A|N|"_")*') # ('')turn it into string
+
+A = "a"|"b"|"c"|"d"|"e"|"f"|"g"|"h"|"i"|"j"|"k"|"l"|"m"|"n"|"o"|"p"|"q"|"r"|"s"|"t"|"u"|"v"|"w"|"x"|"y"|"z"|"A"|"B"|"C"|"D"|"E"|"F"|"G"|"H"|"I"|"J"|"K"|"L"|"M"|"N"|"O"|"P"|"Q"|"R"|"S"|"T"|"U"|"V"|"W"|"X"|"Y"|"Z"
+N = "1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"|"0"
+INT = ('N+')
+S = " "|"\n"|"\t"|"\r"
+# A, N and ALL are pre-defined
+`);
+
+var parseNed = parser.parse;
+
+
+
+/*
+simple TxcRocketfuel
+{
+gates:
+inout gate[];
+}
+
+network backbone_latencies_1221
+{
+submodules:
+TownsvilleInAustralia4282: TxcRocketfuel;
+BrisbaneInAustralia1800: TxcRocketfuel;
+connections:
+TownsvilleInAustralia4282.gate++ <--> { delay = 700ms; } <--> BrisbaneInAustralia1800.gate++;
+TownsvilleInAustralia4282.gate++ <--> { delay = 700ms; } <--> BrisbaneInAustralia1769.gate++;
+}
+*/
+
+
+
+
+
+
+
+</script>
+<script>var getTextFile = function(path){
+    var ifr = document.createElement("iframe");
+    document.body.appendChild(ifr);
+    ifr.src = path;
+    ifr.style = "display:none;";
+    var callback;
+    var decodeHTML = function(input){
+        var e = document.createElement('textarea');
+        e.innerHTML = input;
+        // handle case of empty input
+        return e.childNodes.length === 0 ? "" : e.childNodes[0].nodeValue;
+    }
+    ifr.onload = function(){
+        var strRawContents = this.contentWindow.document.body.childNodes[0].innerHTML;
+        document.body.removeChild(this);
+        callback(decodeHTML(strRawContents));
+    }
+    return function(c){
+        callback = c;
+    }
+};
+
+/*getTextFile("./test.ned")(function(t){
+    console.log(t);
+});*/</script>
+<script>//require parseNed.js
+//require getTextFile.js
+
+
+getTextFile("../topology/rocketfuel_ned/backbone/backbone_latencies_1221.ned")(function(t){
+    var result = parser.parse(t);
+    console.log(result);
+    var submodules = result[1][4][0][4].map(
+        function(e){
+            return [e[0],e[4]];
+        }
+    );
+    var connections = result[1][4][1][4].map(
+        function(e){
+            return [e[0],e[16],e[26]];
+        }
+    );
+    console.log(submodules);
+    console.log(connections);
+    var nodes = result[1][4][0][4].map(
+        function(e){
+            return e[0];
+        }
+    );
+    var edges = result[1][4][1][4].map(
+        function(e){
+            return [e[0],e[26]];
+        }
+    );
+
+    var graph = nodesEdgesToGraph(nodes,edges);
+
+    var n = maxmatch(graph);
+    console.log("Maximum matching for this graph is "+n);
+});
+
+
+var isEven = function(n){
+    return n%2 === 0;
+};
+
+var nodesEdgesToGraph = function(nodes,edges){
+    var h = {};
+    var graph = [];
+    for(var i = 0; i < nodes.length; i++){
+        graph[i] = {};
+        h[nodes[i]] = i;
+    }
+    for(var i = 0; i < edges.length; i++){
+        graph[h[edges[i][0]]][h[edges[i][1]]] = true;
+        graph[h[edges[i][1]]][h[edges[i][0]]] = true;
+    }
+    graph = graph.map(
+        function(o){
+            var ret = [];
+            for(var key in o){
+                ret.push(parseInt(key));
+            }
+            return ret;
+        }
+    );
+    return graph;
+};
+
+
+
+var maxmatch = function(graph){
+    console.log(graph);
+    var unusedVs = {};
+    var matchElist = [];
+    var matchEs = {};
+    var matchVs = {};
+    //fincs random matchings
+
+    for(var i = 0; i < graph.length; i++){
+        unusedVs[i] = true;
+    }
+
+    var v = 0;
+    var m = true;
+    for(var i = 0; i < graph.length; i++){
+        var v1 = i;
+        if(v1 in matchVs)continue;
+        for(var j = 0; j < graph[i].length; j++){
+            //var v1 = i;
+            var v2 = graph[i][j];
+
+            if(!(v1 in matchVs) && !(v2 in matchVs)){
+                //register both directions
+                matchEs[v1+","+v2] = true;
+                matchEs[v2+","+v1] = true;
+                matchVs[v1] = v2;
+                matchVs[v2] = v1;
+                delete unusedVs[v1];
+                delete unusedVs[v2];
+                matchElist.push([v1,v2]);
+                break;
+            }
+        }
+    }
+    console.log(matchElist);
+    console.log(matchEs);
+    console.log(matchVs);
+    console.log(graph.length);
+    console.log(matchElist.length);
+    console.log(unusedVs);
+    //random matching complete
+
+    var findAugumentingPath = function(G,me,mv,mel,uu){
+        var F = [];
+        var unmarkedVF = {};
+        var unmarkedE = {};
+        var usedVF = {};
+        for(var v1 = 0; v1 < graph.length; v1++){
+            //unmarkedV[i] = true;
+            for(var j = 0; j < graph[i].length; j++){
+                var v2 = graph[v1][j];
+                if(!(v1 in unmarkedE))unmarkedE[v1] = {};
+                if(!(v2 in unmarkedE))unmarkedE[v2] = {};
+                unmarkedE[v1][v2] = true;
+                unmarkedE[v2][v1] = true;
+            }
+        }
+
+        for(var i = 0; i < uu.length; i++){
+            var tree ={
+                root:uu[i],
+                edges:[],
+                nodes:{},//nodeid and dist from root
+                tree:[uu[i],0,[],null]
+            };
+            tree.nodes[uu[i]] = tree.tree;
+            F.push(tree);
+            unmarkedVF[uu[i]] = tree;
+            usedVF[uu[i]] = tree;
+        }
+
+        while(true){//b8
+            var f1 = false;
+            var f2 = false;
+            var v;
+            for(v in unmarkedVF){
+                f1 = true;
+                if(!isEven(unmarkedVF[v].nodes[v][1])){
+                    f2 = true;
+                    break;
+                }
+            }
+            var tree = unmarkedVF[v];
+            if(!f1)break;
+            if(!f2)break;
+            //v is now qualified
+            while(true){//b9
+                var f1 = false;
+                var w;
+                for(w in unmarkedE[v]){
+                    f1 = true;
+                    break;
+                }
+                if(!f1)break;
+                //v, w set
+
+                //v10
+                if(!usedVF[w]){
+                    // w is matched, so add e and w's matched edge to F
+                    var x = mv[w];
+                    usedVF[w] = tree;
+                    usedVF[x] = tree;
+                    tree.edges.push([v,w]);
+                    tree.edges.push([w,x]);
+                    var dv = tree.nodes[v][1];
+                    var dw = dv+1;
+                    tree.nodes[w] = [w,dw,[],tree.nodes[v]];
+                    tree.nodes[v][2].push(tree.nodes[w]);
+                    var dx = dw+1;
+                    tree.nodes[x] = [x,dx,[],tree.nodes[w]];
+                    tree.nodes[w][2].push(tree.nodes[x]);
+                }else if(!isEven(usedVF[w].nodes[w][1])){//v14
+                    //do nothing
+                }else if(tree !== usedVF[w]){//root of v and w are different
+                    // Report an augmenting path in F U { e }.
+
+                }else{
+                    // Contract a blossom in G and look for the path in the contracted
+
+                }
+
+
+                delete unmarkedE[v1][v2];
+                delete unmarkedE[v2][v1];
+            }
+            delete unmarkedVF[v];
+        }
+    };
+
+};
+
+
+
+
+/*var maxmatch = function(graph){
+    console.log(graph);
+    var matchEs = [];
+    var matchVs = {};
+    //fincs random matchings
+
+    var v = 0;
+    var m = true;
+    while(true){
+        var vv = graph[v];
+        var ff = false;
+        console.log(vv);
+        for(var i = 0; i < vv.length; i++){
+            console.log(vv[i]);
+            console.log(matchVs[vv[i]]);
+            if(!matchVs[vv[i]]){
+                if(m){
+                    matchVs[v] = true;
+                    matchVs[vv[i]] = true;
+                    matchEs.push([v,vv[i]]);
+                }
+                v = vv[i];
+                m = !m;
+                //continues in while
+                ff = true;
+                break;
+            }
+        }
+        if(ff)continue;
+        break;
+    }
+    console.log(matchEs);
+    console.log(matchVs);
+    console.log(graph.length);
+    console.log(matchEs.length);
+};*/
+
+
+
+
+
+</script>
+
+</body>

@@ -1,0 +1,245 @@
+1:01 "鈴木爆発" "Suzuki explosion" --Suzuki is a common last name
+1:14 スタートボタンを押してください press the start button
+1:14 鈴木爆発 Suzuki explosion
+1:52 鈴木 Suzuki
+1:52 水024214道(水道 means tap water. and numbers in between indicates the client id)
+2:00 "よろしくお願いします" "Please take care of this"
+2:11 爆弾 みかん bomb tangerine
+2:17 方向キーで標識の方に進んで use the arrow keys to maneuver as the sign indicates
+2:23 ボタンで残り時間を見て press the button to see the time remaining
+2:25 ボタンで残り時間を見て press the button to see the time remaining
+2:27 ボタンで残り時間を見て press the button to see the time remaining
+2:33 ネジだ・・・・○ボタンでツールを用意 Oh, it's a screw... press the ○ buttons to prepare the tool
+2:34 ドライバー driver
+2:35 解体の基本は調べることから始まる Inspection is the most basic step of (bomb) defusion
+2:36 ムシメガネ magnifying glass
+2:37 ニッパー plier
+2:43 ムシメガネ magnifying glass
+2:43 ドライバー driver
+2:44 ムシメガネ magnifying glass
+2:45 ニッパー plier
+2:48 ムシメガネ magnifying glass
+2:48 ドライバー driver
+2:49 道具を手にした　使う got the tool　use
+2:53 ドライバーでネジを外す drive out the screw using a driver
+3:03 ネジをゆるめる loosen the screw
+3:11 ネジをしめる tighten the screw
+3:16 ドライバーでネジを外す drive out the screw using a driver
+3:20 ネジをゆるめる loosen the screw
+3:22 ネジをゆるめる loosen the screw
+3:26 みかんの皮がむけた！ we peeled off the tangerine!
+3:29 信管！　爆弾の心臓・・・・ fuse! the heart of the bomb...
+3:34 信管！　爆弾の心臓・・・・ fuse! the heart of the bomb...
+3:39 "あー疲れたー" "Oof... I'm tired"
+3:41 信管！　爆弾の心臓・・・・ fuse! the heart of the bomb...
+3:45 爆発まであと explosion in:
+3:45 解体率25% defusal 25% completed
+3:50 信管！　爆弾の心臓・・・・ fuse! the heart of the bomb...
+3:55 ネジだ　ドライバーで外して Oh, it's a screw. Remove it with a driver
+3:56 解体の基本・・・まずはネジを調べる Basics of defusion... Inspect the screw
+3:58 ネジをゆるめる loosen the screw
+4:04 解体の基本・・・まずはネジを調べる Basics of defusion... Inspect the screw
+4:04 ドライバー driver
+4:06 ネジをゆるめる loosen the screw
+4:11 ガラスカバーが取れた！ Now the glass cover is off! (Oh my god just break it)
+4:15 信管！　爆弾の心臓・・・・ fuse! the heart of the bomb...
+4:16 ドライバー driver
+4:17 ムシメガネ magnifying glass
+4:18 ニッパー plier
+4:20 値札をつけてやった　お前の命の値段だ I put a price tag, it's the price of your life.
+4:22 ムシメガネ magnifying glass
+4:23 ニッパー plier
+4:25 ニッパーを使う use the plier
+4:26 ニッパー plier
+4:30 信管！　爆弾の心臓・・・・ fuse! the heart of the bomb...
+4:32 どちらかのコードを切れば解体成功 Cutting either one of the cord will result in success
+4:34 ニッパー plier
+4:34 ニッパーを選択してから○ボタン press the ○ button after selecting plier
+4:34 ムシメガネ magnifying glass
+4:35 ニッパー plier
+4:36 これで最後だ This one is the last
+4:36 切る cut it (Wow, perfectly in sync)
+4:45 解体成功 defusion success
+4:47 爆弾レベル bomb level
+4:47 爆発まであと explosion until:
+4:47 爆弾レベル bomb level
+4:47 解体所要時間 time taken to defuse
+4:47 解体レベル defusion (skill) level
+4:47 トータル鈴木レベル total Suzuki level
+5:05 "すごい！" "Amazing!"
+5:24 鈴木爆発 Suzuki explosion
+5:37 鈴木爆発 Suzuki explosion
+6:38 爆弾　ピストル bomb pistol
+6:47 ん？中に何かある Wh... There's something inside?
+6:50 ネジだ！ It's a screw! (Of corse)
+6:52 ドライバー driver
+6:52 ムシメガネ magnifying glass
+6:52 ドライバー driver
+6:53 ムシメガネ magnifying glass
+6:53 ドライバー driver
+6:56 ネジをゆるめる loosen the screw
+6:59 おーーー！ Ahhh!
+7:00 ネジが取れた！ the screw is out!
+7:04 危ないのはここからよ Dangerous part begins from here
+7:08 これを時計回りに回して turn this clockwise
+7:10 ドライバー driver
+7:11 ムシメガネ magnifying glass
+7:12 ネジをゆるめる loosen the screw
+7:16 ネジをゆるめる loosen the screw
+7:19 ネジが取れた！ the screw is out!
+7:22 ドライバーを使う use the driver
+7:23 ネジをゆるめる loosen the screw
+7:26 ネジをゆるめる loosen the screw
+7:30 ネジが取れた！ the screw is out!
+7:30 "外れた" "it's out"
+7:36 ハサミがある there are scissors
+7:37 ハサミが狙っているコードには危険表示が there is a danger sign on the cord aimed by the scissors
+7:40 ハサミがある！ there are scissors!
+7:41 ハサミがある！ there are scissors!
+7:43 ドライバー driver
+7:43 ムシメガネ magnifying glass
+7:44 調べる inspect
+7:46 ネジを全部外さないと I must take off all the screws
+7:49 ムシメガネ magnifying glass
+7:50 ドライバー driver
+7:52 ネジをゆるめる loosen the screw
+7:56 ネジをゆるめる loosen the screw
+8:17 ハサミがある！ there are scissors!
+8:19 ハサミがある！ there are scissors!
+8:21 ドライバー driver
+8:22 ムシメガネ magnifying glass
+8:22 ニッパー plier
+8:28 ニッパー plier
+8:29 ムシメガネ magnifying glass
+8:31 ネジを抜く順番をよく考えろ さもないと 俺のハサミがおまえを殺すぞ Think carefully about the order you pull out the screws, otherwise my scissors are going to kill you
+8:33 ムシメガネ magnifying glass
+8:34 ドライバー driver
+8:40 ハサミがある！ there are scissors!
+8:41 ドライバー driver
+8:42 ムシメガネ magnifying glass
+8:42 ドライバー driver
+8:43 ムシメガネ magnifying glass
+8:43 ドライバー driver
+8:43 ムシメガネ magnifying glass
+8:43 ニッパー plier
+8:44 ニッパーを使う use the plier
+8:46 ニッパー plier
+8:46 ムシメガネ magnifying glass
+8:46 ドライバー driver
+8:48 ドライバーを使う use the driver
+8:53 ネジをゆるめる loosen the screw
+9:01 ネジをしめる tighten the screw
+9:08 ネジをゆるめる loosen the screw
+9:13 ネジをゆるめる loosen the screw
+9:17 ネジをゆるめる loosen the screw
+9:21 ネジをゆるめる loosen the screw
+9:25 トラップを取り除いた！ I removed the trap!
+9:33 ""忘れた "I forgot"
+9:33 ドライバー driver
+9:34 ニッパー plier
+9:35 ニッパーを使う use the plier
+9:36 赤いコードを切る！ cut the red cord!
+9:36 "今から殺す" "I will kill you now"
+9:45 解体成功 defusion success
+9:46 爆弾レベル bomb level
+9:46 爆発まであと explosion until:
+9:46 爆弾レベル bomb level
+9:46 解体所要時間 time taken to defuse
+9:46 解体レベル defusion (skill) level
+9:46 トータル鈴木レベル total Suzuki level
+9:56 "すごい！" "Amazing!"
+10:14 決定○戻る✖︎ Proceed○Go back✖︎
+10:18 メモリーカードを選んでください choose the memory card
+10:18 決定○戻る✖︎ Proceed○Go back✖︎
+10:18 メモリーカードのチェックをしています。メモリーカードの抜き差しをしないで下さい。 Cheching the memory card. Don't pull out or stick in the memory card.
+10:25 ここでセーブしますか？ Do you want to save here?
+10:25 メモリーカードのチェックをしています。メモリーカードの抜き差しをしないで下さい。 Cheching the memory card. Don't pull out or stick in the memory card.
+10:26 鈴木さんにセーブしています・・・メモリーカードに触らないでください。あなたに不都合なことが起きるか、あるいは爆発します。 Saving to Suzuki-san... Don't touch the memory card. You will experience something unreasonable or it will explode.
+10:29 鈴木　クリア数　レベル Suzuki, number of successes, level
+10:29 決定○戻る✖︎ Proceed○Go back✖︎
+10:32 メモリーカードを選んでください choose the memory card
+10:32 決定○戻る✖︎ Proceed○Go back✖︎
+10:35 決定○戻る✖︎ Proceed○Go back✖︎
+10:38 "どうした？" "What's wrong?"
+11:26 赤いコードを切る！ cut the red cord!
+11:36 解体成功 defusion success
+11:38 爆弾レベル bomb level
+11:38 爆発まであと explosion until:
+11:38 爆弾レベル bomb level
+11:38 解体所要時間 time taken to defuse
+11:38 解体レベル defusion (skill) level
+11:38 トータル鈴木レベル total Suzuki level
+11:47 "すごい！" "Amazing!"
+12:32 爆弾　月 Bomb Moon
+12:55 中滞的。。。。　。。気。行動者に　強。量を。め何ヶ月　真実に到着 (I can't read, too small. 。is the letter I couldn't read)
+12:55 ドライバー driver
+12:56 ムシメガネ magnifying glass
+12:58 ムシメガネ magnifying glass
+12:59 ニッパー plier
+13:04 ニッパー plier
+13:05 ムシメガネ magnifying glass
+13:05 ドライバー driver
+13:07 ネジをゆるめる loosen the screw
+13:12 ネジが取れた！ the screw is out!
+13:19 ドライバー driver
+13:21 ネジをゆるめる loosen the screw
+13:25 ネジをゆるめる loosen the screw
+13:27 ネジが取れた！ the screw is out!
+13:34 ドライバー driver
+13:36 ネジをゆるめる loosen the screw
+13:39 ネジをゆるめる loosen the screw
+13:43 ネジが取れた！ the screw is out!
+13:48 ドライバー driver
+13:52 ネジをゆるめる loosen the screw
+13:55 ネジをゆるめる loosen the screw
+14:00 ネジが取れた！ the screw is out!
+14:05 ここは違うよ　バ〜カ！ This is not the right place, idiot!
+14:11 "なんだとこの野郎？" You think you can mes with me?
+14:20 ドライバー driver
+14:21 ネジをゆるめる loosen the screw
+14:22 緊急起爆タイマーが作動した！ Emergency detonation device had been activated!
+14:26 ネジが取れた！ the screw is out!
+14:28 ドライバー driver
+14:29 ネジをゆるめる loosen the screw
+14:33 緊急起爆タイマーが解除された！ Emergency detonation device had been deactivated!
+14:41 ドライバー driver
+14:44 ネジをゆるめる loosen the screw
+14:49 ネジが取れた！ the screw is out!
+14:53 なんで歯車があるの？ Why is there a screw here?
+15:00 ドライバー driver
+15:02 ネジをゆるめる loosen the screw
+15:06 歯車を回す turn the gear
+15:11 歯車を回す turn the gear
+15:15 歯車を回す turn the gear
+15:19 ネジをゆるめる loosen the screw
+15:22 ネジが取れた！ the screw is out!
+15:25 歯車を回す turn the gear
+15:30 ネジをゆるめる loosen the screw
+15:35 歯車を回す turn the gear
+15:39 ネジをゆるめる loosen the screw
+15:43 フタが取れた！ the lid is off!
+15:49 ドライバー driver
+15:50 ムシメガネ magnifying glass
+15:50 ニッパー plier
+15:52 ムシメガネ magnifying glass
+15:52 ドライバー driver
+15:54 ドライバーを使う use the driver
+15:55 歯車を回す turn the gear
+15:59 ネジをゆるめる loosen the screw
+16:03 ネジをゆるめる loosen the screw
+16:06 ネジをゆるめる loosen the screw
+16:11 歯車を回す turn the gear
+16:15 ネジをゆるめる loosen the screw
+16:19 ネジをゆるめる loosen the screw
+16:25 バラバラになった！ It's broken apart!
+16:33 ドライバー driver
+16:34 ムシメガネ magnifying glass
+16:35 ドライバー driver
+16:37 ドライバーを使う use the driver
+16:38 ネジをゆるめる loosen the screw
+16:42 今は使えない you can't use that now!
+16:46 歯車を回す turn the gear
+16:49 歯車を回す turn the gear
+
+Oh my god, That took a good three hours\(^O^)/
+I must go back to mining netherite

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head><title>yt0.js</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+</head>
+<body>
+<script>//make the attribute parser
+//new version with updated attrlex (One pass!!!!!)
+
+var attrlex = function(str){//全部オートマトンで書いた。やったー！！
+    var i = 0;
+    var state = 0;//0 first 1 second
+    var ttype = 0;//0 unknown 1 space 2 string 3 name
+    var tokenended = false;
+    var attrs = [];
+    var attr = ["",""];
+    while(i < str.length){
+        //console.log(i,str[i],state,ttype);
+        if(ttype === 0){
+            if(tokenended){
+                if(state === 1){//end section
+                    attrs.push(attr);
+                    state = 0;
+                    attr = ["",""];
+                    tokenended = false;
+                }
+            }
+            if(str[i] === " "){
+                ttype = 1;
+                //i++;
+            }else if(str[i] === "\""){
+                ttype = 2;
+                i++;
+            }else if(str[i] === "="){
+                ttype = 0;
+                state = 1;
+                i++;
+                tokenended = false;
+            }else{//name
+                ttype = 3;
+            }
+        }else if(ttype === 1){//space
+            if(str[i] === " "){
+                i++;
+            }else{
+                ttype = 0;
+            }
+        }else if(ttype === 2){//string
+            if(tokenended){//did not pass "=", end section
+                attrs.push(attr);
+                state = 0;
+                attr = ["",""];
+                tokenended = false;
+            }
+            if(str[i] === "\\"){
+                attr[state]+=str[i+1];
+                i+=2;
+            }else if(str[i] === "\""){
+                ttype = 0;
+                i++;
+                tokenended = true;
+            }else{
+                attr[state]+=str[i];
+                i++;
+            }
+        }else if(ttype === 3){//name
+            if(tokenended){//did not pass "=", end section
+                attrs.push(attr);
+                state = 0;
+                attr = ["",""];
+                tokenended = false;
+            }
+            if(str[i] === "="){
+                ttype = 0;
+                tokenended = true;
+            }else if(str[i] === " "){
+                ttype = 0;
+                tokenended = true;
+            }else if(str[i] === "\""){
+                ttype = 0;
+                tokenended = true;
+            }else{
+                attr[state]+=str[i];
+                i++;
+            }
+        }
+    }
+    if(attr[0] !== "")attrs.push(attr);
+    return attrs;
+};
+
+
+var ELEM = function(nname,inner,attr,style){
+    var e = document.createElement(nname);
+    if(inner)e.innerHTML = inner;
+    if(attr){
+        attrlex(attr).map(at=>{
+            e.setAttribute(at[0],at[1]);
+        });
+    }
+    if(style)e.style = style;
+    this.e = e;
+
+    this.add = function(nname,inner,attr,style){
+        if(typeof nname === "string"){
+            var eelem = new ELEM(nname,inner,attr,style);
+            this.e.appendChild(eelem.e);
+            return eelem;
+        }else{
+            this.e.appendChild(nname.e);
+            return nname;
+        }
+    };
+    this.attr = function(a,b){
+        this.e.setAttribute(a,b);
+    };
+};
+
+var body = (new function(){
+    this.e = document.body;
+    this.add = function(nname,inner,attr,style){
+        if(typeof nname === "string"){
+            var eelem = new ELEM(nname,inner,attr,style);
+            this.e.appendChild(eelem.e);
+            return eelem;
+        }else{
+            this.e.appendChild(nname.e);
+            return nname;
+        }
+    };
+}());
+</script>
+<script>//require /lib/htmlgen0.js
+// 2. This code loads the IFrame Player API code asynchronously.
+var tag = document.createElement('script');
+
+tag.src = "https://www.youtube.com/iframe_api";
+var firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+
+
+
+var YTstate = {
+    ready:false,
+    funcs:[],
+    whenready:function(func){
+        if(this.ready){
+            func();
+        }else{
+            this.funcs.push(func);
+        }
+    }
+};
+
+onYouTubeIframeAPIReady = function(){
+    YTstate.ready = true;
+    YTstate.funcs.map(func=>func());
+};
+
+
+const Player = function(){
+    var id = Math.random().toString(36).slice(2);
+    var iframe = new ELEM("iframe",null,'id="'+id+'" frameborder="0" allowfullscreen="1" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" width="640" height="385"',"background-color:#000;color:#fff;font-size:3em;");
+    var ready = false;
+    var player;
+
+
+    setTimePending = false;
+    this.setTime = function(time){
+        if(ready){
+            player.seekTo(time);
+        }else{
+            setTimePending = time;
+        }
+    };
+
+    this.getTime = function(){
+        if(ready){
+            player.getCurrentTime();
+        }else if(setTimePending !== false){
+            return setTimePending;
+        }else{
+            return 0;
+        }
+    };
+
+    this.playing = true;
+    this.pause = function(){
+        this.playing = false;
+        if(ready){
+            player.pauseVideo();
+        }
+    };
+
+    this.play = function(){
+        this.playing = true;
+        if(ready){
+            player.playVideo();
+        }
+    }
+
+    this.e = iframe.e;
+
+    var onPlayerReady = function(){
+        ready = true;
+        if(setTimePending !== false){
+            this.setTime(setTimePending);
+            setTimePending = false;
+        }
+        if(this.playing === true){
+            this.play();
+        }else{
+            this.pause();
+        }
+    };
+
+    var onStateChange = function(e){
+        console.log(e);
+    };
+
+    this.setURL = function(url){
+        YTstate.whenready(()=>{
+            ready = false;
+            iframe.attr("src",url);
+            player = new YT.Player(id, {
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onStateChange
+                }
+            });
+            console.log(player);
+        });
+    }
+};
+
+var player = new Player();
+body.add(player);
+url = "https://www.youtube.com/embed/"+"xkMdLcB_vNU"+"?autoplay=1&amp;loop=1&amp;rel=0&amp;fs=1&amp;modestbranding=1&amp;iv_load_policy=3&amp;enablejsapi=1&amp;origin="+escape(window.location.origin)+"&amp;widgetid=1";
+
+
+</script>
+
+</body>

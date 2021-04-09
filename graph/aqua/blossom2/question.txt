@@ -1,0 +1,15 @@
+In JavaScript, using "use strict" trades some flexibility with the speed,
+I have noticed that specifying numerical key in an object results in conversion
+from integer to string. And when accessed or referenced, the object takes
+both integer and string as its key.
+The example is as below
+
+var a = {};
+a[1] = 0;
+
+1 in a;
+//returns true
+"1" in a;
+//also returns true
+
+Is there a way to inhibit this behavior?

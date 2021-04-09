@@ -1,0 +1,25 @@
+page = clauses*
+clauses = clauseclass & clausename & block
+clausename = variablename
+clauseclass = variablename
+
+block = "{" & (dataname & ":" & data* )* & "}"
+dataname = variablename
+data = ( vertex | edge | otherdata) & ";"
+vertex = vertexname & ":" & vertextype
+vertexname = variablename
+vertextype = variablename
+
+edge = vertexfrom & "<-->" & delayinfo & "<-->" & vertexto
+vertexfrom = vertexfromName & "gate++" ?
+vertexfromName = variablename
+vertexto = vertextoName & "gate++" ?
+vertextoName = variablename
+delayinfo = "{" & "delay" & "=" & delaytime & ";" & "}"
+delaytime = (A|N)+
+
+otherdata = (ALL - ";")+
+
+variablename = A&(A|N)+
+
+# A, N and ALL are pre-defined
